@@ -1,4 +1,4 @@
-const API_BASE = "http://10.121.43.185:1986/api";
+const API_BASE = "https://music45-5nbz.onrender.com/api";
 
 export async function fetchSongs() {
   const res = await fetch(`${API_BASE}/songs`);
