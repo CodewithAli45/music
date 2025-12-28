@@ -1,42 +1,91 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchSongs } from "./services/api";
-import Player from "./components/Player";
-import SongList from "./components/SongList";
-import "./styles/player.css";
+import NowPlaying from "./components/NowPlaying";
 
 export default function App() {
   const [songs, setSongs] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+
+  const audioRef = useRef(null);
 
   useEffect(() => {
-    fetchSongs()
-      .then(setSongs)
-      .catch(err => console.error(err));
+    // fetchSongs().then(setSongs);
+    fetchSongs().then((data) => {
+      // 🔥 Normalize song name from public_id
+      const normalized = data.map((s) => ({
+        ...s,
+        title:(s.public_id)
+      }));
+      setSongs(normalized);
+    });
   }, []);
 
-  return (
-    <div className="app">
-      <h1>🎵 My Music</h1>
+  useEffect(() => {
+      if (!audioRef.current) return;
 
-      <SongList
-        songs={songs}
-        currentIndex={currentIndex}
-        onSelect={setCurrentIndex}
+      audioRef.current.load();
+
+      // 🔥 Auto-play ONLY if already playing
+      if (playing) {
+        audioRef.current
+          .play()
+          .catch(() => {
+            /* autoplay safety */
+          });
+      }
+    }, [currentIndex, playing]);
+
+
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+
+    if (playing) {
+      audioRef.current.pause();
+    } else {
+      await audioRef.current.play();
+    }
+    setPlaying(!playing);
+  };
+
+  const nextSong = () => {
+    setCurrentIndex((i) => (i + 1) % songs.length);
+  };
+
+  const prevSong = () => {
+    setCurrentIndex((i) => (i - 1 + songs.length) % songs.length);
+  };
+
+  return (
+    <div className="app-shell">
+      <audio
+        ref={audioRef}
+        src={songs[currentIndex]?.url}
+        onTimeUpdate={() => {
+          setCurrentTime(audioRef.current.currentTime);
+        }}
+        onLoadedMetadata={() => {
+          setDuration(audioRef.current.duration);
+        }}
+        onEnded={nextSong}
       />
 
-      {songs.length > 0 && (
-        <Player
-          song={songs[currentIndex]}
-          onNext={() =>
-            setCurrentIndex((currentIndex + 1) % songs.length)
-          }
-          onPrev={() =>
-            setCurrentIndex(
-              (currentIndex - 1 + songs.length) % songs.length
-            )
-          }
-        />
-      )}
+      <NowPlaying
+        song={songs[currentIndex]}
+        playing={playing}
+        currentTime={currentTime}
+        duration={duration}
+        onSeek={(time) => {
+          audioRef.current.currentTime = time;
+          setCurrentTime(time);
+        }}
+        onPlayPause={togglePlay}
+        onNext={nextSong}
+        onPrev={prevSong}
+      />
     </div>
   );
 }

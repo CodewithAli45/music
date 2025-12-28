@@ -1,0 +1,111 @@
+.now-playing {
+  height: 580px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  margin: 10px 0;
+  background: #d47d7d;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border-radius: 20px;
+}
+
+/* Top Bar */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+}
+
+/* Album */
+.album-wrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.album-art {
+  width: 260px;
+  height: 260px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+/* Song Info */
+
+.song-info {
+  width: 300px;          /* 👈 mobile-safe width */
+  margin: 12px auto 0;
+  text-align: center;
+  overflow: hidden;
+}
+
+.song-info-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Progress */
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.progress input {
+  flex: 1;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.controls button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+}
+
+.play-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #b84cff;
+  font-size: 26px;
+  color: #fff;
+}
+
+/* Song list icon */
+.list-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #fff;
+}
+
+
