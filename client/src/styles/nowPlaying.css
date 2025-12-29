@@ -109,3 +109,10 @@
 }
 
 
+.open-list-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: 0.8;
+  font-size: 14px;
+}

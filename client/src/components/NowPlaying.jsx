@@ -8,7 +8,8 @@ export default function NowPlaying({
   onSeek,
   onPlayPause,
   onNext,
-  onPrev
+  onPrev,
+  onOpenList
 })
 
 {
@@ -68,6 +69,9 @@ export default function NowPlaying({
 
         <button onClick={onNext}>⏭</button>
       </div>
+      <button className="open-list-btn" onClick={onOpenList}>
+        ☰ Song List
+      </button>
     </div>
   );
 }

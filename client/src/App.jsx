@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchSongs } from "./services/api";
 import NowPlaying from "./components/NowPlaying";
+import SongListModal from "./components/SongListModal";
+
 
 export default function App() {
   const [songs, setSongs] = useState([]);
@@ -8,6 +10,8 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [showList, setShowList] = useState(false);
+
 
 
   const audioRef = useRef(null);
@@ -59,6 +63,7 @@ export default function App() {
     setCurrentIndex((i) => (i - 1 + songs.length) % songs.length);
   };
 
+
   return (
     <div className="app-shell">
       <audio
@@ -85,6 +90,14 @@ export default function App() {
         onPlayPause={togglePlay}
         onNext={nextSong}
         onPrev={prevSong}
+        onOpenList={() => setShowList(true)}
+      />
+      <SongListModal
+        open={showList}
+        songs={songs}
+        currentIndex={currentIndex}
+        onSelect={setCurrentIndex}
+        onClose={() => setShowList(false)}
       />
     </div>
   );
