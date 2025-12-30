@@ -9,7 +9,6 @@ body {
 .app-shell {
   width: 100%;
   max-width: 420px;      /* 👈 mobile width */
-  background: #000;
   position: relative;
   overflow: hidden;
 }
