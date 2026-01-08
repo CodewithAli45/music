@@ -1,0 +1,17 @@
+{
+  "name": "Music Player",
+  "short_name": "Music",
+  "description": "Premium Modern Music Player",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#7b2ff7",
+  "icons": [
+    {
+      "src": "/album-placeholder.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

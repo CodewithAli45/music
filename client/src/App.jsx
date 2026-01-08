@@ -12,37 +12,30 @@ export default function App() {
   const [duration, setDuration] = useState(0);
   const [showList, setShowList] = useState(false);
 
-
-
   const audioRef = useRef(null);
 
   useEffect(() => {
-    // fetchSongs().then(setSongs);
     fetchSongs().then((data) => {
-      // 🔥 Normalize song name from public_id
       const normalized = data.map((s) => ({
         ...s,
-        title:(s.public_id)
+        title: s.public_id,
       }));
       setSongs(normalized);
     });
   }, []);
 
+  // 🔥 Load song ONLY when currentIndex changes
   useEffect(() => {
-      if (!audioRef.current) return;
+    if (!audioRef.current || songs.length === 0) return;
 
-      audioRef.current.load();
+    audioRef.current.load();
 
-      // 🔥 Auto-play ONLY if already playing
-      if (playing) {
-        audioRef.current
-          .play()
-          .catch(() => {
-            /* autoplay safety */
-          });
-      }
-    }, [currentIndex, playing]);
-
+    if (playing) {
+      audioRef.current.play().catch(() => {
+        /* autoplay safety */
+      });
+    }
+  }, [currentIndex]);
 
   const togglePlay = async () => {
     if (!audioRef.current) return;
@@ -55,14 +48,22 @@ export default function App() {
     setPlaying(!playing);
   };
 
+  const getRandomIndex = (exclude) => {
+    if (songs.length <= 1) return 0;
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * songs.length);
+    } while (newIndex === exclude);
+    return newIndex;
+  };
+
   const nextSong = () => {
-    setCurrentIndex((i) => (i + 1) % songs.length);
+    setCurrentIndex(getRandomIndex(currentIndex));
   };
 
   const prevSong = () => {
-    setCurrentIndex((i) => (i - 1 + songs.length) % songs.length);
+    setCurrentIndex(getRandomIndex(currentIndex));
   };
-
 
   return (
     <div className="app-shell">
@@ -96,9 +97,13 @@ export default function App() {
         open={showList}
         songs={songs}
         currentIndex={currentIndex}
-        onSelect={setCurrentIndex}
+        onSelect={(index) => {
+          setCurrentIndex(index);
+          setPlaying(true); // Auto-play when selecting from list
+        }}
         onClose={() => setShowList(false)}
       />
     </div>
   );
 }
+
