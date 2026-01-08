@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  padding: 12px;
   background: linear-gradient(180deg, rgba(123, 47, 247, 0.15) 0%, rgba(13, 13, 13, 0) 100%);
   position: relative;
   overflow: hidden;
@@ -26,7 +26,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   position: relative;
   z-index: 10;
 }
@@ -61,8 +61,9 @@
 }
 
 .album-art {
-  width: 280px;
-  height: 280px;
+  width: 350px;
+  height: 350px;
+  margin-bottom: 16px;
   border-radius: var(--border-radius-lg);
   object-fit: cover;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
@@ -74,7 +75,7 @@
 .progress-container {
   width: 100%;
   margin-top: auto;
-  margin-bottom: 24px;
+  
 }
 
 .progress-bar-wrapper {
@@ -129,7 +130,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 40px;
+  margin-bottom: 60px;
 }
 
 .control-btn {
@@ -249,8 +250,10 @@
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.1);
 }
+.song-info{
+  padding: 14px;
+}
 .song-info-name{
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: ellipsis;  
 }
