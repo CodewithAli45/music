@@ -5,6 +5,11 @@ export const revalidate = 3600; // Cache for 1 hour
 
 export async function GET() {
   try {
+    if (!process.env.CLOUDINARY_CLOUD_NAME) {
+      console.warn("Cloudinary credentials missing. Returning empty list for build.");
+      return NextResponse.json([]);
+    }
+
     const { resources } = await cloudinary.search
       .expression("resource_type:video") // Cloudinary treats audio as video type usually
       .max_results(500) // Limit to 500

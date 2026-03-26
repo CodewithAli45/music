@@ -22,6 +22,7 @@ export default function AudioPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isShuffle, setIsShuffle] = useState(true);
@@ -69,7 +70,8 @@ export default function AudioPlayer() {
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       const current = audioRef.current.currentTime;
-      const total = audioRef.current.duration;
+      const total = audioRef.current.duration || 1;
+      setCurrentTime(current);
       setProgress((current / total) * 100);
     }
   };
@@ -161,7 +163,7 @@ export default function AudioPlayer() {
           <div className="progress-fill" style={{ width: `${progress}%` }}></div>
         </div>
         <div className="time-info">
-          <span>{formatTime(audioRef.current?.currentTime || 0)}</span>
+          <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
       </div>
