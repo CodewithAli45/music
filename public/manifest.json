@@ -1,0 +1,21 @@
+{
+  "name": "Music Player PWA",
+  "short_name": "Music Player",
+  "description": "A premium music player built with Next.js and Cloudinary",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/asset/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/asset/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
