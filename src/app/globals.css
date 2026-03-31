@@ -29,7 +29,7 @@ body {
 }
 
 .player-container {
-  width: 400px;
+  width: 380px;
   height: 650px;
   border-radius: 12px; /* Remove border radius for full screen effect */
   background: var(--card-bg);

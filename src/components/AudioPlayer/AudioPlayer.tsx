@@ -1,21 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Menu, 
-  Heart, 
-  Repeat, 
-  Shuffle,
-  X,
-  Music
+  Play, Pause, SkipBack, SkipForward, Menu, Heart, Repeat, Shuffle, X
 } from "lucide-react";
 import { Song } from "@/types";
 import Image from "next/image";
-import { useCallback } from "react";
 
 export default function AudioPlayer() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -30,10 +20,7 @@ export default function AudioPlayer() {
   const [isRepeat, setIsRepeat] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
-
   const currentSong = songs[currentIndex];
-
-  const togglePlay = () => setIsPlaying(!isPlaying);
 
   const nextSong = useCallback(() => {
     if (songs.length === 0) return;
@@ -53,6 +40,8 @@ export default function AudioPlayer() {
     setCurrentIndex((prev) => (prev - 1 + songs.length) % songs.length);
   }, [songs.length]);
 
+  const togglePlay = () => setIsPlaying(!isPlaying);
+
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       const current = audioRef.current.currentTime;
@@ -62,134 +51,80 @@ export default function AudioPlayer() {
     }
   };
 
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     if (audioRef.current) {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const width = rect.width;
-      const percentage = x / width;
-      audioRef.current.currentTime = percentage * audioRef.current.duration;
+      audioRef.current.currentTime = (x / rect.width) * audioRef.current.duration;
     }
   };
 
+  // Initial Fetch
   useEffect(() => {
     fetch("/api/songs")
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         if (Array.isArray(data)) {
-          const uniqueSongs = [];
-          const titles = new Set();
-          for (const song of data) {
-            if (!titles.has(song.title)) {
-              titles.add(song.title);
-              uniqueSongs.push(song);
-            }
+          const unique = [];
+          const seen = new Set();
+          for (const s of data) {
+            if (!seen.has(s.title)) { seen.add(s.title); unique.push(s); }
           }
-          setSongs(uniqueSongs);
+          setSongs(unique);
         }
         setLoading(false);
       })
-      .catch((err) => {
-        console.error("Failed to fetch songs", err);
-        setLoading(false);
-      });
+      .catch(err => { console.error(err); setLoading(false); });
   }, []);
 
+  // Playback Control
   useEffect(() => {
     if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(e => console.log("Playback failed", e));
-      } else {
-        audioRef.current.pause();
-      }
+      if (isPlaying) audioRef.current.play().catch(() => {});
+      else audioRef.current.pause();
     }
   }, [isPlaying, currentIndex]);
 
-  // Media Session API - Safely handle insecure contexts
+  // Media Session & Metadata (Consolidated)
   useEffect(() => {
-    if (typeof window !== "undefined" && "mediaSession" in navigator && window.MediaMetadata && currentSong) {
-      try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: currentSong.title,
-          artist: currentSong.artist || "Unknown Artist",
-          album: "My Cloudinary Music",
-          artwork: [
-            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "96x96", type: "image/png" },
-            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "128x128", type: "image/png" },
-            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "192x192", type: "image/png" },
-            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "256x256", type: "image/png" },
-            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "384x384", type: "image/png" },
-            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "512x512", type: "image/png" },
-          ],
-        });
+    if (!currentSong || typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: "My Cloudinary Music",
+        artwork: [
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "512x512", type: "image/png" }
+        ]
+      });
 
-        navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
-        navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
-        navigator.mediaSession.setActionHandler("previoustrack", prevSong);
-        navigator.mediaSession.setActionHandler("nexttrack", nextSong);
-      } catch (e) {
-        console.warn("MediaSession or MediaMetadata failed to initialize. Likely insecure context.", e);
-      }
-    }
-  }, [currentSong, nextSong, prevSong]);
-
-  // Update Media Session playback state
-  useEffect(() => {
-    if ("mediaSession" in navigator) {
+      navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
+      navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+      navigator.mediaSession.setActionHandler("previoustrack", prevSong);
+      navigator.mediaSession.setActionHandler("nexttrack", nextSong);
       navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    } catch (e) {
+      console.warn("MediaSession failed", e);
     }
-  }, [isPlaying]);
+  }, [currentSong, isPlaying, nextSong, prevSong]);
 
-  // Handle Back Button for PWA
+  // Back Button & Modal Handling (Simplified)
   useEffect(() => {
-    // Push an initial state so we have something to pop
-    window.history.pushState({ modal: false }, "");
-
-    const handlePopState = (event: PopStateEvent) => {
-      // If modal is open, close it and stay on page
-      if (isModalOpen) {
-        setIsModalOpen(false);
-        // Push state back so the next 'back' can also be caught if needed
-        window.history.pushState({ modal: false }, "");
-      } else {
-        // If music is playing, maybe we want to alert or just let them go back
-        // But usually PWAs want to stay alive. 
-        // For now, if they hit back and modal is closed, we let the default happen 
-        // (which might exit the app if no more history)
-      }
-    };
-
+    const handlePopState = () => { if (isModalOpen) setIsModalOpen(false); };
     window.addEventListener("popstate", handlePopState);
+    if (isModalOpen) window.history.pushState({ modal: true }, "");
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [isModalOpen]);
-
-  // Sync state when modal opens
-  useEffect(() => {
-    if (isModalOpen) {
-      window.history.pushState({ modal: true }, "");
-    }
   }, [isModalOpen]);
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  if (loading) {
-    return <div className="text-white">Loading your music...</div>;
-  }
-
-  if (songs.length === 0) {
-    return <div className="text-white">No songs found in your library.</div>;
-  }
+  if (loading) return <div className="text-white p-8">Loading your music...</div>;
+  if (!songs.length) return <div className="text-white p-8">No songs found.</div>;
 
   return (
     <div className="player-container">
@@ -197,30 +132,19 @@ export default function AudioPlayer() {
         ref={audioRef}
         src={currentSong?.url}
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
         onEnded={nextSong}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        onError={(e) => console.error("Audio playback error:", e)}
       />
 
       <div className="header">
-        <button className="icon-btn" onClick={() => setIsModalOpen(true)}>
-          <Menu size={24} />
-        </button>
-        <button className="icon-btn">
-          <Heart size={24} fill="currentColor" color="var(--accent)" />
-        </button>
+        <button className="icon-btn" onClick={() => setIsModalOpen(true)}><Menu size={24} /></button>
+        <button className="icon-btn"><Heart size={24} fill="currentColor" color="var(--accent)" /></button>
       </div>
 
       <div className="album-art">
-        <Image 
-          src={currentSong?.cover || "/asset/album-placeholder.png"} 
-          alt="" 
-          width={300}
-          height={600}
-          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-        />
+        <Image src={currentSong?.cover || "/asset/album-placeholder.png"} alt="" width={300} height={600} style={{ objectFit: 'cover', width: '100%', height: '100%' }} priority />
       </div>
 
       <div className="song-info">
@@ -239,55 +163,23 @@ export default function AudioPlayer() {
       </div>
 
       <div className="controls">
-        <button 
-          className="icon-btn" 
-          onClick={() => setIsShuffle(!isShuffle)}
-          style={{ color: isShuffle ? "var(--primary)" : "var(--foreground)", opacity: isShuffle ? 1 : 0.5 }}
-        >
-          <Shuffle size={20} />
-        </button>
-        <button className="icon-btn" onClick={prevSong}>
-          <SkipBack size={28} fill="currentColor" />
-        </button>
-        <button className="play-pause-btn" onClick={togglePlay}>
-          {isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" style={{ marginLeft: 4 }} />}
-        </button>
-        <button className="icon-btn" onClick={nextSong}>
-          <SkipForward size={28} fill="currentColor" />
-        </button>
-        <button 
-          className="icon-btn" 
-          onClick={() => setIsRepeat(!isRepeat)}
-          style={{ color: isRepeat ? "var(--primary)" : "var(--foreground)", opacity: isRepeat ? 1 : 0.5 }}
-        >
-          <Repeat size={20} />
-        </button>
+        <button className="icon-btn" onClick={() => setIsShuffle(!isShuffle)} style={{ color: isShuffle ? "var(--primary)" : "var(--foreground)", opacity: isShuffle ? 1 : 0.5 }}><Shuffle size={20} /></button>
+        <button className="icon-btn" onClick={prevSong}><SkipBack size={28} fill="currentColor" /></button>
+        <button className="play-pause-btn" onClick={togglePlay}>{isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" style={{ marginLeft: 4 }} />}</button>
+        <button className="icon-btn" onClick={nextSong}><SkipForward size={28} fill="currentColor" /></button>
+        <button className="icon-btn" onClick={() => setIsRepeat(!isRepeat)} style={{ color: isRepeat ? "var(--primary)" : "var(--foreground)", opacity: isRepeat ? 1 : 0.5 }}><Repeat size={20} /></button>
       </div>
 
-      {/* Song List Modal */}
       <div className={`modal-overlay glass ${isModalOpen ? "open" : ""}`}>
         <div className="header" style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 20, fontWeight: 700 }}>Playlist</h3>
-          <button className="icon-btn" onClick={() => setIsModalOpen(false)}>
-            <X size={24} />
-          </button>
+          <button className="icon-btn" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
         </div>
-        
         <ul className="song-list">
           {songs.map((song, index) => (
-            <li 
-              key={song.id} 
-              className={`song-item ${index === currentIndex ? "active" : ""}`}
-              onClick={() => {
-                setCurrentIndex(index);
-                setIsPlaying(true);
-                setIsModalOpen(false);
-              }}
-            >
+            <li key={song.id} className={`song-item ${index === currentIndex ? "active" : ""}`} onClick={() => { setCurrentIndex(index); setIsPlaying(true); setIsModalOpen(false); }}>
               <span className="song-item-number">{index + 1}.</span>
-              <div className="song-item-info">
-                <span className="song-item-title">{song.title}</span>
-              </div>
+              <div className="song-item-info"><span className="song-item-title">{song.title}</span></div>
             </li>
           ))}
         </ul>
