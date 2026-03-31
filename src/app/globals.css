@@ -1,12 +1,12 @@
 :root {
   --background: #6e778c;
-  --foreground: #f8fafc;
+  --foreground: #87bbef;
   --primary: #3b82f6;
-  --secondary: #64748b;
+  --secondary: #faf9f9;
   --accent: #ef4444;
-  --glass: rgba(255, 255, 255, 0.05);
+  --glass: #d6ccc2;
   --glass-border: rgba(255, 255, 255, 0.1);
-  --card-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --card-bg: #2a9d8f;
 }
 
 * {
@@ -65,16 +65,22 @@ body {
 
 .song-info {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 10px;
 }
 
 .song-title {
   font-size: 18px;
   font-weight: 700;
-  margin-bottom: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.song-counter {
+  font-size: 14px;
+  color: var(--secondary);
+  font-weight: 500;
 }
 
 .song-artist {
@@ -122,7 +128,7 @@ body {
 }
 
 .progress-container {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .progress-bar {
@@ -200,12 +206,16 @@ body {
   flex-direction: column;
 }
 
-.song-item-title {
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.song-item-artist {
+.song-item-number {
   font-size: 14px;
   color: var(--secondary);
+  min-width: 24px;
+}
+
+.song-item-title {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

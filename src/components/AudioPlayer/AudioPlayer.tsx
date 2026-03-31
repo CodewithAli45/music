@@ -228,7 +228,7 @@ export default function AudioPlayer() {
 
       <div className="song-info">
         <h2 className="song-title">{currentSong?.title}</h2>
-        <p className="song-artist">{currentSong?.artist}</p>
+        <div className="song-counter">({currentIndex + 1}/{songs.length})</div>
       </div>
 
       <div className="progress-container">
@@ -287,12 +287,9 @@ export default function AudioPlayer() {
                 setIsModalOpen(false);
               }}
             >
-              <div className="glass" style={{ padding: 8, borderRadius: 8 }}>
-                <Music size={20} color={index === currentIndex ? "var(--primary)" : "var(--secondary)"} />
-              </div>
+              <span className="song-item-number">{index + 1}.</span>
               <div className="song-item-info">
                 <span className="song-item-title">{song.title}</span>
-                <span className="song-item-artist">{song.artist}</span>
               </div>
             </li>
           ))}
