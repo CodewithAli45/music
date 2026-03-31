@@ -211,7 +211,6 @@ export default function AudioPlayer() {
         <button className="icon-btn" onClick={() => setIsModalOpen(true)}>
           <Menu size={24} />
         </button>
-        {/* Removed 'Now Playing' text to prevent duplicate top text */}
         <button className="icon-btn">
           <Heart size={24} fill="currentColor" color="var(--accent)" />
         </button>
@@ -221,8 +220,8 @@ export default function AudioPlayer() {
         <Image 
           src={currentSong?.cover || "/asset/album-placeholder.png"} 
           alt="" 
-          width={400} 
-          height={400}
+          width={300}
+          height={600}
           style={{ objectFit: 'cover', width: '100%', height: '100%' }}
         />
       </div>
