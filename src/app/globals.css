@@ -6,7 +6,7 @@
   --accent: #ef4444;
   --glass: #d6ccc2;
   --glass-border: rgba(255, 255, 255, 0.1);
-  --card-bg: #2a9d8f;
+  --card-bg: #81b29a;
 }
 
 * {
@@ -29,8 +29,8 @@ body {
 }
 
 .player-container {
-  width: 320px;
-  height: 580px;
+  width: 400px;
+  height: 650px;
   border-radius: 12px; /* Remove border radius for full screen effect */
   background: var(--card-bg);
   position: relative;

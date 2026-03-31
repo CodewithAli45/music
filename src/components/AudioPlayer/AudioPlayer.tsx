@@ -111,37 +111,31 @@ export default function AudioPlayer() {
     }
   }, [isPlaying, currentIndex]);
 
-  // Media Session API
+  // Media Session API - Safely handle insecure contexts
   useEffect(() => {
-    if ("mediaSession" in navigator && currentSong) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentSong.title,
-        artist: currentSong.artist || "Unknown Artist",
-        album: "My Cloudinary Music",
-        artwork: [
-          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "96x96", type: "image/png" },
-          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "128x128", type: "image/png" },
-          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "192x192", type: "image/png" },
-          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "256x256", type: "image/png" },
-          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "384x384", type: "image/png" },
-          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "512x512", type: "image/png" },
-        ],
-      });
+    if (typeof window !== "undefined" && "mediaSession" in navigator && window.MediaMetadata && currentSong) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: currentSong.title,
+          artist: currentSong.artist || "Unknown Artist",
+          album: "My Cloudinary Music",
+          artwork: [
+            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "96x96", type: "image/png" },
+            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "128x128", type: "image/png" },
+            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "192x192", type: "image/png" },
+            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "256x256", type: "image/png" },
+            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "384x384", type: "image/png" },
+            { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "512x512", type: "image/png" },
+          ],
+        });
 
-      navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
-      navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
-      navigator.mediaSession.setActionHandler("previoustrack", prevSong);
-      navigator.mediaSession.setActionHandler("nexttrack", nextSong);
-      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-        if (audioRef.current) {
-          audioRef.current.currentTime = Math.max(audioRef.current.currentTime - (details.seekOffset || 10), 0);
-        }
-      });
-      navigator.mediaSession.setActionHandler("seekforward", (details) => {
-        if (audioRef.current) {
-          audioRef.current.currentTime = Math.min(audioRef.current.currentTime + (details.seekOffset || 10), audioRef.current.duration);
-        }
-      });
+        navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
+        navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+        navigator.mediaSession.setActionHandler("previoustrack", prevSong);
+        navigator.mediaSession.setActionHandler("nexttrack", nextSong);
+      } catch (e) {
+        console.warn("MediaSession or MediaMetadata failed to initialize. Likely insecure context.", e);
+      }
     }
   }, [currentSong, nextSong, prevSong]);
 
@@ -205,6 +199,9 @@ export default function AudioPlayer() {
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={nextSong}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={(e) => console.error("Audio playback error:", e)}
       />
 
       <div className="header">

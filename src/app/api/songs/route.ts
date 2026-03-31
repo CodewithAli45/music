@@ -12,25 +12,31 @@ export async function GET() {
 
     let allResources: any[] = [];
     let next_cursor: string | undefined = undefined;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    const fetchPage = async (cursor: string | undefined) => {
+      while (attempts < maxAttempts) {
+        try {
+          return await cloudinary.search
+            .expression("resource_type:video")
+            .max_results(500)
+            .next_cursor(cursor)
+            .execute();
+        } catch (error: any) {
+          attempts++;
+          if (attempts >= maxAttempts) throw error;
+          console.warn(`Cloudinary fetch attempt ${attempts} failed (possibly DNS). Retrying in 1s...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    };
 
     do {
-      const searchOptions: any = {
-        expression: "resource_type:video",
-        max_results: 500,
-      };
-
-      if (next_cursor) {
-        searchOptions.next_cursor = next_cursor;
-      }
-
-      const result = await cloudinary.search
-        .expression("resource_type:video")
-        .max_results(500)
-        .next_cursor(next_cursor)
-        .execute();
-
+      const result: any = await fetchPage(next_cursor);
       allResources = allResources.concat(result.resources);
       next_cursor = result.next_cursor;
+      attempts = 0; // Reset for next page
     } while (next_cursor);
 
     const songs = allResources.map((resource: any) => ({
