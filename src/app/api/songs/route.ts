@@ -10,20 +10,35 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const { resources } = await cloudinary.search
-      .expression("resource_type:video") // Cloudinary treats audio as video type usually
-      .max_results(500) // Limit to 500
-      .execute();
+    let allResources: any[] = [];
+    let next_cursor: string | undefined = undefined;
 
-    // If no results, try general search or specific folder if needed
-    // But usually audio is resource_type:video or we can just fetch all
-    
-    const songs = resources.map((resource: any) => ({
+    do {
+      const searchOptions: any = {
+        expression: "resource_type:video",
+        max_results: 500,
+      };
+
+      if (next_cursor) {
+        searchOptions.next_cursor = next_cursor;
+      }
+
+      const result = await cloudinary.search
+        .expression("resource_type:video")
+        .max_results(500)
+        .next_cursor(next_cursor)
+        .execute();
+
+      allResources = allResources.concat(result.resources);
+      next_cursor = result.next_cursor;
+    } while (next_cursor);
+
+    const songs = allResources.map((resource: any) => ({
       id: resource.public_id,
       title: resource.public_id.split("/").pop(), // Basic title extraction
       url: resource.secure_url,
       duration: resource.duration,
-      artist: "Unknown Artist", // Cloudinary doesn't store artist in search by default
+      artist: resource.context?.custom?.artist || "Unknown Artist", 
       cover: resource.context?.custom?.caption || "/asset/album-placeholder.png",
     }));
 

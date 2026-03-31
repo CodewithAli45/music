@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Song } from "@/types";
 import Image from "next/image";
+import { useCallback } from "react";
 
 export default function AudioPlayer() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -31,6 +32,51 @@ export default function AudioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const currentSong = songs[currentIndex];
+
+  const togglePlay = () => setIsPlaying(!isPlaying);
+
+  const nextSong = useCallback(() => {
+    if (songs.length === 0) return;
+    if (isShuffle && songs.length > 1) {
+      let randomIndex = Math.floor(Math.random() * songs.length);
+      while (randomIndex === currentIndex) {
+        randomIndex = Math.floor(Math.random() * songs.length);
+      }
+      setCurrentIndex(randomIndex);
+    } else {
+      setCurrentIndex((prev) => (prev + 1) % songs.length);
+    }
+  }, [isShuffle, songs.length, currentIndex]);
+
+  const prevSong = useCallback(() => {
+    if (songs.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + songs.length) % songs.length);
+  }, [songs.length]);
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      const current = audioRef.current.currentTime;
+      const total = audioRef.current.duration || 1;
+      setCurrentTime(current);
+      setProgress((current / total) * 100);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (audioRef.current) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const width = rect.width;
+      const percentage = x / width;
+      audioRef.current.currentTime = percentage * audioRef.current.duration;
+    }
+  };
 
   useEffect(() => {
     fetch("/api/songs")
@@ -65,48 +111,76 @@ export default function AudioPlayer() {
     }
   }, [isPlaying, currentIndex]);
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  // Media Session API
+  useEffect(() => {
+    if ("mediaSession" in navigator && currentSong) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist || "Unknown Artist",
+        album: "My Cloudinary Music",
+        artwork: [
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "96x96", type: "image/png" },
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "128x128", type: "image/png" },
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "192x192", type: "image/png" },
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "256x256", type: "image/png" },
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "384x384", type: "image/png" },
+          { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "512x512", type: "image/png" },
+        ],
+      });
 
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      const current = audioRef.current.currentTime;
-      const total = audioRef.current.duration || 1;
-      setCurrentTime(current);
-      setProgress((current / total) * 100);
+      navigator.mediaSession.setActionHandler("play", () => setIsPlaying(true));
+      navigator.mediaSession.setActionHandler("pause", () => setIsPlaying(false));
+      navigator.mediaSession.setActionHandler("previoustrack", prevSong);
+      navigator.mediaSession.setActionHandler("nexttrack", nextSong);
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.max(audioRef.current.currentTime - (details.seekOffset || 10), 0);
+        }
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.min(audioRef.current.currentTime + (details.seekOffset || 10), audioRef.current.duration);
+        }
+      });
     }
-  };
+  }, [currentSong, nextSong, prevSong]);
 
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+  // Update Media Session playback state
+  useEffect(() => {
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
     }
-  };
+  }, [isPlaying]);
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (audioRef.current) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const width = rect.width;
-      const percentage = x / width;
-      audioRef.current.currentTime = percentage * audioRef.current.duration;
-    }
-  };
+  // Handle Back Button for PWA
+  useEffect(() => {
+    // Push an initial state so we have something to pop
+    window.history.pushState({ modal: false }, "");
 
-  const nextSong = () => {
-    if (isShuffle && songs.length > 1) {
-      let randomIndex = Math.floor(Math.random() * songs.length);
-      while (randomIndex === currentIndex) {
-        randomIndex = Math.floor(Math.random() * songs.length);
+    const handlePopState = (event: PopStateEvent) => {
+      // If modal is open, close it and stay on page
+      if (isModalOpen) {
+        setIsModalOpen(false);
+        // Push state back so the next 'back' can also be caught if needed
+        window.history.pushState({ modal: false }, "");
+      } else {
+        // If music is playing, maybe we want to alert or just let them go back
+        // But usually PWAs want to stay alive. 
+        // For now, if they hit back and modal is closed, we let the default happen 
+        // (which might exit the app if no more history)
       }
-      setCurrentIndex(randomIndex);
-    } else {
-      setCurrentIndex((prev) => (prev + 1) % songs.length);
-    }
-  };
+    };
 
-  const prevSong = () => {
-    setCurrentIndex((prev) => (prev - 1 + songs.length) % songs.length);
-  };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isModalOpen]);
+
+  // Sync state when modal opens
+  useEffect(() => {
+    if (isModalOpen) {
+      window.history.pushState({ modal: true }, "");
+    }
+  }, [isModalOpen]);
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
