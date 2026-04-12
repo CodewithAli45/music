@@ -18,7 +18,7 @@ const getLocalIPs = () => {
 
 const withPWA = withPWAInit({
   dest: "public",
-  disable: false, // Enable in development
+  disable: process.env.NODE_ENV === "development",
   register: true,
 });
 
@@ -36,5 +36,9 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: getLocalIPs(),
   },
 };
+
+module.exports = {
+  allowedDevOrigins: ['10.85.153.185'],
+}
 
 export default withPWA(nextConfig);

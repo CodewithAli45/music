@@ -24,6 +24,7 @@ export default function AudioPlayer() {
 
   const nextSong = useCallback(() => {
     if (songs.length === 0) return;
+    setIsPlaying(true);
     if (isShuffle && songs.length > 1) {
       let randomIndex = Math.floor(Math.random() * songs.length);
       while (randomIndex === currentIndex) {
@@ -37,6 +38,7 @@ export default function AudioPlayer() {
 
   const prevSong = useCallback(() => {
     if (songs.length === 0) return;
+    setIsPlaying(true);
     setCurrentIndex((prev) => (prev - 1 + songs.length) % songs.length);
   }, [songs.length]);
 
@@ -92,7 +94,7 @@ export default function AudioPlayer() {
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentSong.title,
-        artist: "My Cloudinary Music",
+        artist: currentSong.artist || "My Music",
         artwork: [
           { src: currentSong.cover || "/asset/album-placeholder.png", sizes: "512x512", type: "image/png" }
         ]

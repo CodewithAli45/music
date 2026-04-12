@@ -14,20 +14,26 @@ const geistMono = Geist_Mono({
 
 
 export const metadata: Metadata = {
-  title: "Music Player",
+  title: "Premium Music",
   description: "A premium music player built with Next.js",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Music Player",
+  },
   icons: {
     apple: "/asset/logo.png",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#05070a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
