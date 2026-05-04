@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { 
-  Play, Pause, SkipBack, SkipForward, Menu, Heart, Repeat, Shuffle, X
-} from "lucide-react";
 import { Song } from "@/types";
-import Image from "next/image";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import MobilePlayer from "./MobilePlayer";
+import DesktopPlayer from "./DesktopPlayer";
 
 export default function AudioPlayer() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -14,13 +13,19 @@ export default function AudioPlayer() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isShuffle, setIsShuffle] = useState(true);
   const [isRepeat, setIsRepeat] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentSong = songs[currentIndex];
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const nextSong = useCallback(() => {
     if (songs.length === 0) return;
@@ -87,7 +92,7 @@ export default function AudioPlayer() {
     }
   }, [isPlaying, currentIndex]);
 
-  // Media Session & Metadata (Consolidated)
+  // Media Session & Metadata
   useEffect(() => {
     if (!currentSong || typeof window === "undefined" || !("mediaSession" in navigator)) return;
     
@@ -110,14 +115,6 @@ export default function AudioPlayer() {
     }
   }, [currentSong, isPlaying, nextSong, prevSong]);
 
-  // Back Button & Modal Handling (Simplified)
-  useEffect(() => {
-    const handlePopState = () => { if (isModalOpen) setIsModalOpen(false); };
-    window.addEventListener("popstate", handlePopState);
-    if (isModalOpen) window.history.pushState({ modal: true }, "");
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [isModalOpen]);
-
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
     const mins = Math.floor(time / 60);
@@ -125,11 +122,32 @@ export default function AudioPlayer() {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  if (loading) return <div className="text-white p-8">Loading your music...</div>;
+  if (loading || !isMounted) return <div className="text-white p-8">Loading your music...</div>;
   if (!songs.length) return <div className="text-white p-8">No songs found.</div>;
 
+  const playerProps = {
+    songs,
+    currentIndex,
+    currentSong,
+    isPlaying,
+    progress,
+    duration,
+    currentTime,
+    isShuffle,
+    isRepeat,
+    togglePlay,
+    nextSong,
+    prevSong,
+    handleSeek,
+    setIsShuffle,
+    setIsRepeat,
+    setCurrentIndex,
+    setIsPlaying,
+    formatTime,
+  };
+
   return (
-    <div className="player-container">
+    <>
       <audio
         ref={audioRef}
         src={currentSong?.url}
@@ -139,53 +157,7 @@ export default function AudioPlayer() {
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       />
-
-      <div className="header">
-        <button className="icon-btn" onClick={() => setIsModalOpen(true)}><Menu size={24} /></button>
-        <button className="icon-btn"><Heart size={24} fill="currentColor" color="var(--accent)" /></button>
-      </div>
-
-      <div className="album-art">
-        <Image src={currentSong?.cover || "/asset/album-placeholder.png"} alt="" width={300} height={600} style={{ objectFit: 'cover', width: '100%', height: '100%' }} priority />
-      </div>
-
-      <div className="song-info">
-        <h2 className="song-title">{currentSong?.title}</h2>
-        <div className="song-counter">({currentIndex + 1}/{songs.length})</div>
-      </div>
-
-      <div className="progress-container">
-        <div className="progress-bar" onClick={handleSeek}>
-          <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-        </div>
-        <div className="time-info">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-      </div>
-
-      <div className="controls">
-        <button className="icon-btn" onClick={() => setIsShuffle(!isShuffle)} style={{ color: isShuffle ? "var(--primary)" : "var(--foreground)", opacity: isShuffle ? 1 : 0.5 }}><Shuffle size={20} /></button>
-        <button className="icon-btn" onClick={prevSong}><SkipBack size={28} fill="currentColor" /></button>
-        <button className="play-pause-btn" onClick={togglePlay}>{isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" style={{ marginLeft: 4 }} />}</button>
-        <button className="icon-btn" onClick={nextSong}><SkipForward size={28} fill="currentColor" /></button>
-        <button className="icon-btn" onClick={() => setIsRepeat(!isRepeat)} style={{ color: isRepeat ? "var(--primary)" : "var(--foreground)", opacity: isRepeat ? 1 : 0.5 }}><Repeat size={20} /></button>
-      </div>
-
-      <div className={`modal-overlay glass ${isModalOpen ? "open" : ""}`}>
-        <div className="header" style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 20, fontWeight: 700 }}>Playlist</h3>
-          <button className="icon-btn" onClick={() => setIsModalOpen(false)}><X size={24} /></button>
-        </div>
-        <ul className="song-list">
-          {songs.map((song, index) => (
-            <li key={song.id} className={`song-item ${index === currentIndex ? "active" : ""}`} onClick={() => { setCurrentIndex(index); setIsPlaying(true); setIsModalOpen(false); }}>
-              <span className="song-item-number">{index + 1}.</span>
-              <div className="song-item-info"><span className="song-item-title">{song.title}</span></div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+      {isDesktop ? <DesktopPlayer {...playerProps} /> : <MobilePlayer {...playerProps} />}
+    </>
   );
 }
