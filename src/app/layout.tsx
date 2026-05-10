@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 
 export const metadata: Metadata = {
-  title: "Premium Music",
-  description: "A premium music player built with Next.js",
+  title: "My Music",
+  description: "A Music player built with Next.js",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

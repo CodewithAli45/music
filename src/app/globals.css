@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
-  --background: #05070a;
+  --background: #2a9d8f;
   --foreground: #ffffff;
-  --primary: #6366f1;
-  --primary-glow: rgba(99, 102, 241, 0.4);
-  --accent: #f43f5e;
-  --secondary: rgba(255, 255, 255, 0.6);
-  --glass: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --card-bg: rgba(15, 23, 42, 0.8);
+  --primary: #e9c46a;
+  --primary-glow: rgba(233, 196, 106, 0.4);
+  --accent: #e76f51;
+  --secondary: rgba(255, 255, 255, 0.75);
+  --glass: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --card-bg: rgba(38, 70, 83, 0.6);
 }
 
 * {
@@ -41,9 +41,9 @@ body::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 30% 30%, #1e1b4b 0%, transparent 25%),
-              radial-gradient(circle at 70% 60%, #312e81 0%, transparent 25%),
-              radial-gradient(circle at 40% 80%, #1e3a8a 0%, transparent 25%);
+  background: radial-gradient(circle at 30% 30%, #264653 0%, transparent 25%),
+              radial-gradient(circle at 70% 60%, #1d6158 0%, transparent 25%),
+              radial-gradient(circle at 40% 80%, #219ebc 0%, transparent 25%);
   filter: blur(80px);
   z-index: -1;
   animation: moveBackground 20s infinite alternate ease-in-out;
@@ -69,7 +69,8 @@ body::before {
 @media (min-width: 481px) {
   .player-container {
     width: 360px;
-    height: 640px;
+    height: 740px;
+    padding: 16px;
     max-height: 90vh;
     border-radius: 48px;
     border: 1px solid var(--glass-border);
