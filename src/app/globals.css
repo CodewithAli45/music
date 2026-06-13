@@ -1,15 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
-  --background: #2a9d8f;
+  --background: #F6850C;
   --foreground: #ffffff;
-  --primary: #e9c46a;
-  --primary-glow: rgba(233, 196, 106, 0.4);
-  --accent: #e76f51;
+  --primary: #ffe0b2;
+  --primary-glow: rgba(255, 224, 178, 0.4);
+  --accent: #ffb300;
   --secondary: rgba(255, 255, 255, 0.75);
   --glass: rgba(255, 255, 255, 0.15);
   --glass-border: rgba(255, 255, 255, 0.2);
-  --card-bg: rgba(38, 70, 83, 0.6);
+  --card-bg: rgba(0, 0, 0, 0.25);
 }
 
 * {
@@ -41,9 +41,9 @@ body::before {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at 30% 30%, #264653 0%, transparent 25%),
-              radial-gradient(circle at 70% 60%, #1d6158 0%, transparent 25%),
-              radial-gradient(circle at 40% 80%, #219ebc 0%, transparent 25%);
+  background: radial-gradient(circle at 30% 30%, #F6850C 0%, transparent 25%),
+              radial-gradient(circle at 70% 60%, #E65100 0%, transparent 25%),
+              radial-gradient(circle at 40% 80%, #FFB300 0%, transparent 25%);
   filter: blur(80px);
   z-index: -1;
   animation: moveBackground 20s infinite alternate ease-in-out;
@@ -55,27 +55,31 @@ body::before {
 }
 
 .player-container {
-  width: 360px;
-  height: 640px;
+  width: 100vw;
+  height: 100vh;
+  padding: 40px 24px 30px 24px;
   background: transparent;
-  backdrop-filter: blur(20px);
-  position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  gap: 24px;
+  position: relative;
   overflow: hidden;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (min-width: 481px) {
   .player-container {
-    width: 360px;
-    height: 740px;
-    padding: 16px;
+    width: 380px;
+    height: 760px;
+    padding: 32px 24px;
     max-height: 90vh;
     border-radius: 48px;
     border: 1px solid var(--glass-border);
     background: var(--card-bg);
     box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(20px);
+    justify-content: space-between;
   }
 }
 
@@ -83,7 +87,6 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
 }
 
 .album-art {
@@ -92,9 +95,10 @@ body::before {
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
-  margin-bottom: 20px;
   transition: transform 0.3s ease;
   position: relative;
+  margin: 0 auto;
+  max-width: 320px;
 }
 
 .album-art::after {
@@ -108,7 +112,8 @@ body::before {
 
 .song-info {
   text-align: left;
-  margin-bottom: 10px;
+  width: 100%;
+  min-width: 0;
 }
 
 .song-title {
@@ -139,7 +144,7 @@ body::before {
 }
 
 .progress-container {
-  margin-bottom: 20px;
+  width: 100%;
 }
 
 .progress-bar {
@@ -186,8 +191,8 @@ body::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
   margin-top: auto;
-  margin-bottom: 10px;
 }
 
 .play-pause-btn {
@@ -340,8 +345,9 @@ body::before {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 40px;
+  padding: 30px;
   background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%);
+  min-width: 0;
 }
 
 .desktop-album-art {
@@ -349,7 +355,7 @@ body::before {
   height: 350px;
   border-radius: 20px;
   box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   position: relative;
 }
 .desktop-album-art::after {
@@ -362,20 +368,29 @@ body::before {
 }
 
 .desktop-song-title {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 8px;
   text-align: center;
   background: linear-gradient(to right, #fff, rgba(255,255,255,0.8));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 500px;
 }
 
 .desktop-song-artist {
-  font-size: 18px;
+  font-size: 12px;
   color: var(--secondary);
   font-weight: 400;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 500px;
 }
 
 .desktop-sidebar {
@@ -523,6 +538,8 @@ body::before {
   margin-left: 16px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .desktop-bottom-title {
@@ -530,11 +547,17 @@ body::before {
   font-size: 15px;
   color: #fff;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .desktop-bottom-artist {
   font-size: 13px;
   color: var(--secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .desktop-bottom-center {

@@ -22,8 +22,12 @@ const withPWA = withPWAInit({
   register: true,
 });
 
+const isCapacitor = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === "true";
+
 const nextConfig: NextConfig = {
+  ...(isCapacitor ? { output: 'export' } : {}),
   images: {
+    unoptimized: isCapacitor,
     remotePatterns: [
       {
         protocol: "https",
@@ -36,9 +40,5 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: getLocalIPs(),
   },
 };
-
-module.exports = {
-  allowedDevOrigins: ['10.85.153.185'],
-}
 
 export default withPWA(nextConfig);

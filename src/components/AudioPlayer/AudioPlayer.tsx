@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { Capacitor } from "@capacitor/core";
+import { NativeAudio } from "@capgo/capacitor-native-audio";
 import { Song } from "@/types";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import MobilePlayer from "./MobilePlayer";
@@ -22,6 +24,8 @@ export default function AudioPlayer() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const currentSong = songs[currentIndex];
+  const isNative = Capacitor.isNativePlatform();
+  const [nativeLoadedUrl, setNativeLoadedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -58,17 +62,26 @@ export default function AudioPlayer() {
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (audioRef.current) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      audioRef.current.currentTime = (x / rect.width) * audioRef.current.duration;
+  const handleSeek = async (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const targetTime = (x / rect.width) * duration;
+    
+    if (isNative) {
+      try {
+        await NativeAudio.setCurrentTime({ assetId: 'player', time: targetTime });
+        setCurrentTime(targetTime);
+        setProgress((targetTime / duration) * 100);
+      } catch (err) { console.error("Seek error", err); }
+    } else if (audioRef.current) {
+      audioRef.current.currentTime = targetTime;
     }
   };
 
   // Initial Fetch
   useEffect(() => {
-    fetch("/api/songs")
+    const apiPath = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === "true" ? "/api/songs.json" : "/api/songs";
+    fetch(apiPath)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -84,13 +97,69 @@ export default function AudioPlayer() {
       .catch(err => { console.error(err); setLoading(false); });
   }, []);
 
+  // Native Audio Time and Completion Listeners
+  useEffect(() => {
+    if (!isNative) return;
+    
+    const timeListener = NativeAudio.addListener('currentTime', (state: any) => {
+       if (state.assetId === 'player') {
+           setCurrentTime(state.currentTime);
+           setDuration(currentSong?.duration || 1);
+           setProgress((state.currentTime / (currentSong?.duration || 1)) * 100);
+       }
+    });
+
+    const completionListener = NativeAudio.addListener('complete', (state: any) => {
+       if (state.assetId === 'player') {
+           nextSong();
+       }
+    });
+
+    return () => {
+        timeListener.then(l => l.remove());
+        completionListener.then(l => l.remove());
+    };
+  }, [isNative, currentSong?.duration, nextSong]);
+
   // Playback Control
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) audioRef.current.play().catch(() => {});
-      else audioRef.current.pause();
+    if (isNative) {
+      if (!currentSong) return;
+      const manageNativeAudio = async () => {
+        try {
+          if (nativeLoadedUrl !== currentSong.url) {
+            try { await NativeAudio.stop({ assetId: 'player' }); } catch(e){}
+            try { await NativeAudio.unload({ assetId: 'player' }); } catch(e){}
+            
+            await NativeAudio.preload({
+              assetId: 'player',
+              assetPath: currentSong.url,
+            });
+            setNativeLoadedUrl(currentSong.url);
+            setDuration(currentSong.duration || 0);
+            
+            if (isPlaying) {
+              await NativeAudio.play({ assetId: 'player' });
+            }
+          } else {
+            if (isPlaying) {
+              await NativeAudio.play({ assetId: 'player' });
+            } else {
+              await NativeAudio.pause({ assetId: 'player' });
+            }
+          }
+        } catch (err) {
+          console.error("NativeAudio error:", err);
+        }
+      };
+      manageNativeAudio();
+    } else {
+      if (audioRef.current) {
+        if (isPlaying) audioRef.current.play().catch(() => {});
+        else audioRef.current.pause();
+      }
     }
-  }, [isPlaying, currentIndex]);
+  }, [isPlaying, currentIndex, currentSong, isNative, nativeLoadedUrl]);
 
   // Media Session & Metadata
   useEffect(() => {
@@ -148,15 +217,17 @@ export default function AudioPlayer() {
 
   return (
     <>
-      <audio
-        ref={audioRef}
-        src={currentSong?.url}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-        onEnded={nextSong}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      />
+      {!isNative && (
+        <audio
+          ref={audioRef}
+          src={currentSong?.url}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+          onEnded={nextSong}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+        />
+      )}
       {isDesktop ? <DesktopPlayer {...playerProps} /> : <MobilePlayer {...playerProps} />}
     </>
   );
