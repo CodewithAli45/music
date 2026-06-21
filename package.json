@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "build:android": "NEXT_PUBLIC_CAPACITOR_BUILD=true next build --webpack && mv out/api/songs out/api/songs.json && npx cap sync android && sed -i 's/VERSION_21/VERSION_17/g' android/app/capacitor.build.gradle",
+    "build:android": "NEXT_PUBLIC_CAPACITOR_BUILD=true next build --webpack && mv out/api/songs out/api/songs.json && sed -i 's/VERSION_21/VERSION_17/g' node_modules/@capgo/capacitor-native-audio/android/build.gradle && npx cap sync android && sed -i 's/VERSION_21/VERSION_17/g' android/app/capacitor.build.gradle && find android -name build.gradle -exec sed -i 's/VERSION_21/VERSION_17/g' {} +",
     "start": "next start",
     "lint": "eslint"
   },

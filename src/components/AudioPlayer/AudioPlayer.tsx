@@ -26,14 +26,37 @@ export default function AudioPlayer() {
   const currentSong = songs[currentIndex];
   const isNative = Capacitor.isNativePlatform();
   const [nativeLoadedUrl, setNativeLoadedUrl] = useState<string | null>(null);
+  const [nativeConfigured, setNativeConfigured] = useState(false);
+  // Track if we paused (vs loading new track) to use resume() correctly
+  const [nativePaused, setNativePaused] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  // Configure NativeAudio once on mount (native only)
+  useEffect(() => {
+    if (!isNative) return;
+    const init = async () => {
+      try {
+        await NativeAudio.configure({
+          focus: true,
+          background: true,
+          backgroundPlayback: true,
+          showNotification: true,
+        } as any);
+        setNativeConfigured(true);
+      } catch (err) {
+        console.error("NativeAudio configure error:", err);
+      }
+    };
+    init();
+  }, [isNative]);
+
   const nextSong = useCallback(() => {
     if (songs.length === 0) return;
     setIsPlaying(true);
+    setNativePaused(false);
     if (isShuffle && songs.length > 1) {
       let randomIndex = Math.floor(Math.random() * songs.length);
       while (randomIndex === currentIndex) {
@@ -48,6 +71,7 @@ export default function AudioPlayer() {
   const prevSong = useCallback(() => {
     if (songs.length === 0) return;
     setIsPlaying(true);
+    setNativePaused(false);
     setCurrentIndex((prev) => (prev - 1 + songs.length) % songs.length);
   }, [songs.length]);
 
@@ -85,7 +109,7 @@ export default function AudioPlayer() {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const unique = [];
+          const unique: Song[] = [];
           const seen = new Set();
           for (const s of data) {
             if (!seen.has(s.title)) { seen.add(s.title); unique.push(s); }
@@ -97,55 +121,99 @@ export default function AudioPlayer() {
       .catch(err => { console.error(err); setLoading(false); });
   }, []);
 
-  // Native Audio Time and Completion Listeners
+  // Native Audio Listeners (time updates, completion, remote controls)
   useEffect(() => {
     if (!isNative) return;
     
-    const timeListener = NativeAudio.addListener('currentTime', (state: any) => {
+    const timeListener = NativeAudio.addListener('currentTime', (state) => {
        if (state.assetId === 'player') {
            setCurrentTime(state.currentTime);
-           setDuration(currentSong?.duration || 1);
-           setProgress((state.currentTime / (currentSong?.duration || 1)) * 100);
+           if (duration > 0) {
+             setProgress((state.currentTime / duration) * 100);
+           }
        }
     });
 
-    const completionListener = NativeAudio.addListener('complete', (state: any) => {
+    const completionListener = NativeAudio.addListener('complete', (state) => {
        if (state.assetId === 'player') {
            nextSong();
+       }
+    });
+
+    // Listen for lock screen / notification controls (play, pause, next, prev)
+    const playbackStateListener = NativeAudio.addListener('playbackState', (state) => {
+       if (state.assetId === 'player') {
+          if (state.reason === 'remotePlay') {
+            setIsPlaying(true);
+          } else if (state.reason === 'remotePause') {
+            setIsPlaying(false);
+            setNativePaused(true);
+          } else if (state.reason === 'remoteNext') {
+            nextSong();
+          } else if (state.reason === 'remotePrevious') {
+            prevSong();
+          }
+          // Update duration from native if available
+          if (state.duration && state.duration > 0) {
+            setDuration(state.duration);
+          }
        }
     });
 
     return () => {
         timeListener.then(l => l.remove());
         completionListener.then(l => l.remove());
+        playbackStateListener.then(l => l.remove());
     };
-  }, [isNative, currentSong?.duration, nextSong]);
+  }, [isNative, duration, nextSong, prevSong]);
 
   // Playback Control
   useEffect(() => {
     if (isNative) {
-      if (!currentSong) return;
+      if (!currentSong || !nativeConfigured) return;
       const manageNativeAudio = async () => {
         try {
           if (nativeLoadedUrl !== currentSong.url) {
+            // New song — stop, unload, preload, play
             try { await NativeAudio.stop({ assetId: 'player' }); } catch(e){}
             try { await NativeAudio.unload({ assetId: 'player' }); } catch(e){}
             
             await NativeAudio.preload({
               assetId: 'player',
               assetPath: currentSong.url,
+              isUrl: true,
+              notificationMetadata: {
+                title: currentSong.title,
+                artist: currentSong.artist || 'My Music',
+                artworkUrl: currentSong.cover || '',
+              },
             });
             setNativeLoadedUrl(currentSong.url);
-            setDuration(currentSong.duration || 0);
+            setNativePaused(false);
+
+            // Get the actual duration from native player
+            try {
+              const { duration: nativeDuration } = await NativeAudio.getDuration({ assetId: 'player' });
+              if (nativeDuration > 0) setDuration(nativeDuration);
+            } catch(e) {
+              setDuration(currentSong.duration || 0);
+            }
             
             if (isPlaying) {
               await NativeAudio.play({ assetId: 'player' });
             }
           } else {
+            // Same song — toggle play/pause
             if (isPlaying) {
-              await NativeAudio.play({ assetId: 'player' });
+              if (nativePaused) {
+                await NativeAudio.resume({ assetId: 'player' });
+                setNativePaused(false);
+              } else {
+                await NativeAudio.play({ assetId: 'player' });
+              }
             } else {
               await NativeAudio.pause({ assetId: 'player' });
+              setNativePaused(true);
             }
           }
         } catch (err) {
@@ -159,11 +227,12 @@ export default function AudioPlayer() {
         else audioRef.current.pause();
       }
     }
-  }, [isPlaying, currentIndex, currentSong, isNative, nativeLoadedUrl]);
+  }, [isPlaying, currentIndex, currentSong, isNative, nativeLoadedUrl, nativeConfigured, nativePaused]);
 
-  // Media Session & Metadata
+  // Media Session & Metadata (Web/PWA only — native uses NativeAudio's notification)
   useEffect(() => {
     if (!currentSong || typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    if (isNative) return; // NativeAudio handles notifications natively
     
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -182,7 +251,7 @@ export default function AudioPlayer() {
     } catch (e) {
       console.warn("MediaSession failed", e);
     }
-  }, [currentSong, isPlaying, nextSong, prevSong]);
+  }, [currentSong, isPlaying, nextSong, prevSong, isNative]);
 
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
