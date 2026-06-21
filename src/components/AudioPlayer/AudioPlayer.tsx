@@ -30,6 +30,9 @@ export default function AudioPlayer() {
   // Track if we paused (vs loading new track) to use resume() correctly
   const [nativePaused, setNativePaused] = useState(false);
 
+  // Ref to ignore 'complete' events triggered by manual seeking, stopping, or pausing on Android
+  const ignoreCompleteRef = useRef(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -93,10 +96,20 @@ export default function AudioPlayer() {
     
     if (isNative) {
       try {
+        // Set ignore complete flag to prevent seeking from triggering nextSong()
+        ignoreCompleteRef.current = true;
         await NativeAudio.setCurrentTime({ assetId: 'player', time: targetTime });
         setCurrentTime(targetTime);
         setProgress((targetTime / duration) * 100);
-      } catch (err) { console.error("Seek error", err); }
+        
+        // Reset flag after seek is completed and audio resumes
+        setTimeout(() => {
+          ignoreCompleteRef.current = false;
+        }, 1500);
+      } catch (err) { 
+        console.error("Seek error", err); 
+        ignoreCompleteRef.current = false;
+      }
     } else if (audioRef.current) {
       audioRef.current.currentTime = targetTime;
     }
@@ -136,6 +149,10 @@ export default function AudioPlayer() {
 
     const completionListener = NativeAudio.addListener('complete', (state) => {
        if (state.assetId === 'player') {
+           if (ignoreCompleteRef.current) {
+               console.log("Ignored complete listener invocation (triggered manually)");
+               return;
+           }
            nextSong();
        }
     });
@@ -174,6 +191,9 @@ export default function AudioPlayer() {
       const manageNativeAudio = async () => {
         try {
           if (nativeLoadedUrl !== currentSong.url) {
+            // Setting flag to ignore the 'complete' event fired during stop/unload
+            ignoreCompleteRef.current = true;
+
             // New song — stop, unload, preload, play
             try { await NativeAudio.stop({ assetId: 'player' }); } catch(e){}
             try { await NativeAudio.unload({ assetId: 'player' }); } catch(e){}
@@ -202,6 +222,11 @@ export default function AudioPlayer() {
             if (isPlaying) {
               await NativeAudio.play({ assetId: 'player' });
             }
+
+            // Restore complete events handling after new song has preloaded & played
+            setTimeout(() => {
+              ignoreCompleteRef.current = false;
+            }, 1500);
           } else {
             // Same song — toggle play/pause
             if (isPlaying) {
@@ -212,12 +237,18 @@ export default function AudioPlayer() {
                 await NativeAudio.play({ assetId: 'player' });
               }
             } else {
+              // Ignore complete event that might trigger while pausing/stopping
+              ignoreCompleteRef.current = true;
               await NativeAudio.pause({ assetId: 'player' });
               setNativePaused(true);
+              setTimeout(() => {
+                ignoreCompleteRef.current = false;
+              }, 1000);
             }
           }
         } catch (err) {
           console.error("NativeAudio error:", err);
+          ignoreCompleteRef.current = false;
         }
       };
       manageNativeAudio();
