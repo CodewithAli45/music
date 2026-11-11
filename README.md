@@ -5,8 +5,8 @@ A premium, modern music player application built with Next.js. It functions flaw
 ## Features
 
 - **Cross-Platform:** Works on desktop browsers, mobile browsers (as a PWA), and natively on Android.
-- **Premium UI/UX:** Glassmorphism design, fluid animations, and beautiful dynamic layouts.
-- **Responsive Design:** Dedicated views for desktop (`DesktopPlayer`) and mobile (`MobilePlayer`).
+- **Minimalist Terminal UI:** Dark, CLI-inspired theme (`#121212` / `#1e1e1e` / `#2a2a2a`), monospace type, a spinning vinyl artwork stage, and a slide-over playlist panel.
+- **Responsive Design:** One fluid, single-page layout (header → centered artwork → bottom controller) that adapts to any screen with zero horizontal scrolling.
 - **Cloudinary Integration:** Automatically fetches music tracks securely from a connected Cloudinary account.
 - **Media Session Support:** Playback can be controlled via the OS lock screen, notification shade, or connected Bluetooth devices.
 

@@ -1,23 +1,29 @@
 import { Song } from "@/types";
 
-export interface PlayerProps {
+/** Props for the main player layout (top bar + artwork stage + controller). */
+export interface PlayerViewProps {
+  currentSong: Song | undefined;
+  currentIndex: number;
+  totalTracks: number;
+  isPlaying: boolean;
+  isPlaylistOpen: boolean;
+  currentTime: number;
+  duration: number;
+  onTogglePlaylist: () => void;
+  onTogglePlay: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onSeek: (time: number) => void;
+  formatTime: (time: number) => string;
+}
+
+/** Props for the slide-over playlist panel. */
+export interface PlaylistPanelProps {
+  open: boolean;
   songs: Song[];
   currentIndex: number;
-  currentSong: Song | undefined;
   isPlaying: boolean;
-  progress: number;
-  duration: number;
-  currentTime: number;
-  isShuffle: boolean;
-  isRepeat: boolean;
-  
-  togglePlay: () => void;
-  nextSong: () => void;
-  prevSong: () => void;
-  handleSeek: (e: React.MouseEvent<HTMLDivElement>) => void;
-  setIsShuffle: (val: boolean) => void;
-  setIsRepeat: (val: boolean) => void;
-  setCurrentIndex: (index: number) => void;
-  
+  onClose: () => void;
+  onSelect: (index: number) => void;
   formatTime: (time: number) => string;
 }

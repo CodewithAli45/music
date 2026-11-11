@@ -1,12 +1,12 @@
 {
-  "name": "Premium Music Player",
+  "name": "Music Player",
   "short_name": "Music",
-  "description": "A high-end music player experience built with Next.js",
+  "description": "A minimalist, terminal-inspired music player built with Next.js",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#05070a",
-  "theme_color": "#05070a",
+  "background_color": "#121212",
+  "theme_color": "#121212",
   "scope": "/",
   "icons": [
     {
