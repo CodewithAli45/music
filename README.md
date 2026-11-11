@@ -7,6 +7,7 @@ A premium, modern music player application built with Next.js. It functions flaw
 - **Cross-Platform:** Works on desktop browsers, mobile browsers (as a PWA), and natively on Android.
 - **Minimalist Terminal UI:** Dark, CLI-inspired theme (`#121212` / `#1e1e1e` / `#2a2a2a`), monospace type, a static vinyl artwork stage, and a slide-over playlist panel.
 - **Shuffle Playback:** Tracks always advance in random order, with Previous stepping back through your listening history.
+- **Endless Listening:** The next track starts automatically when one ends — even with the screen locked on the installed PWA — while nothing auto-plays until you press Play. A track that fails to load is skipped automatically so playback keeps going.
 - **Responsive Design:** One fluid, single-page layout (header → centered artwork → bottom controller) that adapts to any screen with zero horizontal scrolling.
 - **Cloudinary Integration:** Automatically fetches music tracks securely from a connected Cloudinary account.
 - **Media Session Support:** Playback can be controlled via the OS lock screen, notification shade, or connected Bluetooth devices.

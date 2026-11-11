@@ -31,6 +31,17 @@ export default function AudioPlayer() {
   // Recently played indexes — lets Previous step back through the shuffle history
   const historyRef = useRef<number[]>([]);
 
+  // Bumped on every track switch — retriggers playback even when the index is
+  // unchanged, so single-track libraries loop instead of stopping
+  const [playGeneration, setPlayGeneration] = useState(0);
+
+  // Consecutive track-load failures (web player): auto-skip until every track
+  // has failed once, then stop instead of skipping forever
+  const errorStreakRef = useRef(0);
+  // Generation of the last failure already handled — one failed load can be
+  // reported both as an error event and as a rejected play() call
+  const errorSkipGenRef = useRef(-1);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -77,13 +88,23 @@ export default function AudioPlayer() {
     return next;
   }, []);
 
+  // Switch tracks: clears stale progress from the previous track and bumps the
+  // play generation so the playback effect restarts even when the index is
+  // unchanged (single-track libraries keep looping)
+  const loadTrack = useCallback((index: number) => {
+    setCurrentTime(0);
+    setDuration(0);
+    setPlayGeneration((g) => g + 1);
+    setCurrentIndex(index);
+  }, []);
+
   const nextSong = useCallback(() => {
     if (songs.length === 0) return;
     setIsPlaying(true);
     setNativePaused(false);
     if (songs.length > 1) historyRef.current.push(currentIndex);
-    setCurrentIndex(pickRandomTrack(currentIndex, songs.length));
-  }, [songs.length, currentIndex, pickRandomTrack]);
+    loadTrack(pickRandomTrack(currentIndex, songs.length));
+  }, [songs.length, currentIndex, pickRandomTrack, loadTrack]);
 
   const prevSong = useCallback(() => {
     if (songs.length === 0) return;
@@ -91,8 +112,8 @@ export default function AudioPlayer() {
     setNativePaused(false);
     // Step back through what actually played; fall back to a random pick
     const last = historyRef.current.pop();
-    setCurrentIndex(last ?? pickRandomTrack(currentIndex, songs.length));
-  }, [songs.length, currentIndex, pickRandomTrack]);
+    loadTrack(last ?? pickRandomTrack(currentIndex, songs.length));
+  }, [songs.length, currentIndex, pickRandomTrack, loadTrack]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
@@ -114,11 +135,11 @@ export default function AudioPlayer() {
         return;
       }
       historyRef.current.push(currentIndex);
-      setCurrentIndex(index);
       setIsPlaying(true);
       setNativePaused(false);
+      loadTrack(index);
     },
-    [currentIndex]
+    [currentIndex, loadTrack]
   );
 
   const handleSeek = useCallback(
@@ -150,6 +171,23 @@ export default function AudioPlayer() {
   const handleTimeUpdate = useCallback(() => {
     if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
   }, []);
+
+  // A track failed to load (dead URL, offline moment, …). While listening —
+  // e.g. with the screen locked — skip to another track so playback survives;
+  // give up only after every track has failed in a row. One skip per attempt:
+  // the same failure can surface both as an error event and a rejected play().
+  const handleAudioError = useCallback(() => {
+    if (!isPlaying) return;
+    if (errorSkipGenRef.current === playGeneration) return;
+    errorSkipGenRef.current = playGeneration;
+    errorStreakRef.current += 1;
+    if (errorStreakRef.current >= songs.length) {
+      // every track failed (offline?) — stop rather than skipping forever
+      setIsPlaying(false);
+      return;
+    }
+    nextSong();
+  }, [isPlaying, playGeneration, songs.length, nextSong]);
 
   /* --------------------------------- library -------------------------------- */
 
@@ -308,11 +346,34 @@ export default function AudioPlayer() {
       manageNativeAudio();
     } else {
       if (audioRef.current) {
-        if (isPlaying) audioRef.current.play().catch(() => {});
-        else audioRef.current.pause();
+        if (isPlaying) {
+          audioRef.current.play().catch((err: DOMException) => {
+            // A newer play/load request superseded this one — not a failure
+            if (err?.name === "AbortError") return;
+            // Autoplay was blocked — sync the UI back to the real paused state
+            if (err?.name === "NotAllowedError") {
+              setIsPlaying(false);
+              return;
+            }
+            // The track failed to load — skip to another so listening goes on
+            handleAudioError();
+          });
+        } else {
+          audioRef.current.pause();
+        }
       }
     }
-  }, [isPlaying, currentIndex, currentSong, isNative, nativeLoadedUrl, nativeConfigured, nativePaused]);
+  }, [
+    isPlaying,
+    currentIndex,
+    currentSong,
+    isNative,
+    nativeLoadedUrl,
+    nativeConfigured,
+    nativePaused,
+    playGeneration,
+    handleAudioError,
+  ]);
 
   /* ------------------------------ media session ----------------------------- */
 
@@ -395,10 +456,15 @@ export default function AudioPlayer() {
           ref={audioRef}
           src={currentSong?.url}
           onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
+          onLoadedMetadata={() => {
+            // This track loaded fine — reset the consecutive-failure streak
+            errorStreakRef.current = 0;
+            setDuration(audioRef.current?.duration || 0);
+          }}
           onEnded={nextSong}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
+          onError={handleAudioError}
         />
       )}
       <PlayerView
