@@ -214,22 +214,29 @@ body::before {
 }
 
 .artwork-frame {
-  width: min(58vmin, 320px);
+  /* sizing knobs — retuned per breakpoint below */
+  --aw-vmin: 75; /* share of the smaller viewport axis */
+  --aw-cap: 420px; /* absolute maximum frame width */
+  --aw-chrome: 62px; /* vertical chrome: paddings + header + caption */
+  width: min(calc(var(--aw-vmin) * 1vmin), var(--aw-cap));
   max-width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 14px 14px 12px;
+  padding: 12px 12px 10px;
   box-shadow: 0 24px 48px -32px rgba(0, 0, 0, 0.9);
 }
 
-/* cap the frame to the stage's real height (minus its header/caption chrome)
-   so it never clips on short viewports; falls back to the vmin rule above */
+/* cap the frame to the stage's real height (minus its vertical chrome) so it
+   never clips on short viewports; falls back to the vmin rule above */
 @supports (width: 1cqh) {
   .artwork-frame {
-    width: max(120px, min(58vmin, 320px, calc(100cqh - 68px)));
+    width: max(
+      120px,
+      min(calc(var(--aw-vmin) * 1vmin), var(--aw-cap), calc(100cqh - var(--aw-chrome)))
+    );
   }
 }
 
@@ -238,8 +245,8 @@ body::before {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 10px;
-  margin-bottom: 14px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
   border-bottom: 1px dashed var(--border);
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -284,13 +291,6 @@ body::before {
     #131313 0 2px,
     #1a1a1a 2px 4px
   );
-  animation: vinyl-spin 8s linear infinite;
-  animation-play-state: paused;
-  will-change: transform;
-}
-
-.vinyl-disc.spinning {
-  animation-play-state: running;
 }
 
 .vinyl-label {
@@ -311,7 +311,7 @@ body::before {
   object-fit: cover;
 }
 
-/* static light sheen over the spinning disc */
+/* static light sheen over the disc */
 .vinyl::before {
   content: "";
   position: absolute;
@@ -344,14 +344,8 @@ body::before {
   box-shadow: 0 0 0 1px #000;
 }
 
-@keyframes vinyl-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .frame-caption {
-  margin-top: 12px;
+  margin-top: 8px;
   max-width: 100%;
   text-align: center;
   font-size: 12px;
@@ -776,11 +770,12 @@ body::before {
   }
 
   .stage {
-    padding: 32px;
+    padding: 24px;
   }
 
   .artwork-frame {
-    width: min(50vmin, 360px);
+    --aw-vmin: 65;
+    --aw-cap: 470px;
   }
 
   .controller-inner {
@@ -805,6 +800,10 @@ body::before {
 
   .stage {
     padding: 10px;
+  }
+
+  .artwork-frame {
+    --aw-chrome: 55px;
   }
 
   .controller {
@@ -832,12 +831,12 @@ body::before {
   }
 
   .frame-header {
-    margin-bottom: 10px;
-    padding-bottom: 8px;
+    margin-bottom: 7px;
+    padding-bottom: 6px;
   }
 
   .frame-caption {
-    margin-top: 8px;
+    margin-top: 6px;
   }
 }
 
@@ -871,10 +870,6 @@ body::before {
    -------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .vinyl-disc {
-    animation: none;
-  }
-
   .status-dot.on {
     animation: none;
   }

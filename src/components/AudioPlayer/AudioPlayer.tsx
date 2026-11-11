@@ -28,6 +28,9 @@ export default function AudioPlayer() {
   // Ref to ignore 'complete' events triggered by manual seeking, stopping, or pausing on Android
   const ignoreCompleteRef = useRef(false);
 
+  // Recently played indexes — lets Previous step back through the shuffle history
+  const historyRef = useRef<number[]>([]);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -64,19 +67,32 @@ export default function AudioPlayer() {
 
   /* -------------------------------- transport -------------------------------- */
 
+  // Shuffle mode: pick a random track, never the one currently playing
+  const pickRandomTrack = useCallback((current: number, total: number): number => {
+    if (total <= 1) return current;
+    let next = current;
+    while (next === current) {
+      next = Math.floor(Math.random() * total);
+    }
+    return next;
+  }, []);
+
   const nextSong = useCallback(() => {
     if (songs.length === 0) return;
     setIsPlaying(true);
     setNativePaused(false);
-    setCurrentIndex((prev) => (prev + 1) % songs.length);
-  }, [songs.length]);
+    if (songs.length > 1) historyRef.current.push(currentIndex);
+    setCurrentIndex(pickRandomTrack(currentIndex, songs.length));
+  }, [songs.length, currentIndex, pickRandomTrack]);
 
   const prevSong = useCallback(() => {
     if (songs.length === 0) return;
     setIsPlaying(true);
     setNativePaused(false);
-    setCurrentIndex((prev) => (prev - 1 + songs.length) % songs.length);
-  }, [songs.length]);
+    // Step back through what actually played; fall back to a random pick
+    const last = historyRef.current.pop();
+    setCurrentIndex(last ?? pickRandomTrack(currentIndex, songs.length));
+  }, [songs.length, currentIndex, pickRandomTrack]);
 
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
@@ -97,6 +113,7 @@ export default function AudioPlayer() {
         setIsPlaying((prev) => !prev);
         return;
       }
+      historyRef.current.push(currentIndex);
       setCurrentIndex(index);
       setIsPlaying(true);
       setNativePaused(false);

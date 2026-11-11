@@ -58,13 +58,13 @@ export default function PlayerView({
             </span>
           </div>
           <div className="vinyl">
-            <div className={`vinyl-disc ${isPlaying ? "spinning" : ""}`}>
+            <div className="vinyl-disc">
               <div className="vinyl-label">
                 <Image
                   src={currentSong?.cover || "/asset/album-placeholder.png"}
                   alt=""
                   fill
-                  sizes="220px"
+                  sizes="240px"
                   priority
                   className="vinyl-art"
                 />
