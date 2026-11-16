@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { NativeAudio } from "@capgo/capacitor-native-audio";
 import { Song } from "@/types";
 import PlayerView from "./PlayerView";
 import PlaylistPanel from "./PlaylistPanel";
+
+const AudioPlaybackService = registerPlugin<{
+  requestNotificationPermission: () => Promise<void>;
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+}>("AudioPlaybackService");
 
 export default function AudioPlayer() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -312,6 +318,8 @@ export default function AudioPlayer() {
             }
 
             if (isPlaying) {
+              await AudioPlaybackService.requestNotificationPermission();
+              await AudioPlaybackService.start();
               await NativeAudio.play({ assetId: "player" });
             }
 
@@ -323,15 +331,20 @@ export default function AudioPlayer() {
             // Same song — toggle play/pause
             if (isPlaying) {
               if (nativePaused) {
+                await AudioPlaybackService.requestNotificationPermission();
+                await AudioPlaybackService.start();
                 await NativeAudio.resume({ assetId: "player" });
                 setNativePaused(false);
               } else {
+                await AudioPlaybackService.requestNotificationPermission();
+                await AudioPlaybackService.start();
                 await NativeAudio.play({ assetId: "player" });
               }
             } else {
               // Ignore complete event that might trigger while pausing/stopping
               ignoreCompleteRef.current = true;
               await NativeAudio.pause({ assetId: "player" });
+              await AudioPlaybackService.stop();
               setNativePaused(true);
               setTimeout(() => {
                 ignoreCompleteRef.current = false;
@@ -340,6 +353,11 @@ export default function AudioPlayer() {
           }
         } catch (err) {
           console.error("NativeAudio error:", err);
+          try {
+            await AudioPlaybackService.stop();
+          } catch (serviceError) {
+            console.error("Audio playback service error:", serviceError);
+          }
           ignoreCompleteRef.current = false;
         }
       };
